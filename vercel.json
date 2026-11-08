@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/backup",
+      "schedule": "17 3 * * *"
+    }
+  ],
+  "regions": [
+    "sin1"
+  ],
+  "bunVersion": "1.x",
+  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "bun run build"
+}
