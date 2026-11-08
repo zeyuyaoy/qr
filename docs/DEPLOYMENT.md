@@ -10,7 +10,8 @@ Prerequisites: finish [SETUP.md](./SETUP.md) sections 4, 5, 7 and 8 first (secre
 2. **Framework preset:** Next.js (also pinned by `vercel.json`). Install and build commands are pinned in `vercel.json`; leave the output directory at its default.
 3. **Bun runtime:** `vercel.json` sets `"bunVersion": "1.x"` for Functions and routing middleware. Vercel manages minor/patch versions; this runtime is currently beta. See [Vercel Bun runtime](https://vercel.com/docs/functions/runtimes/bun).
 4. Add the environment variables (next section) **before** the first deploy. `NEXT_PUBLIC_APP_URL` is inlined into the client bundle at build time, so a missing or wrong value requires a rebuild, not just a restart.
-5. Deploy.
+5. Enable **Web Analytics** and **Speed Insights** in the Vercel project dashboard. The root layout includes both Next.js integrations; no extra environment variables are needed. See the [Web Analytics quickstart](https://vercel.com/docs/analytics/quickstart) and [Speed Insights quickstart](https://vercel.com/docs/speed-insights/quickstart).
+6. Deploy.
 
 ## 2. Environment variables
 
@@ -91,6 +92,7 @@ Run these after the first deploy and after any change to env vars, domain or `ve
 - [ ] **Dynamic link works signed out.** Create a dynamic URL code, copy its short link, open it in a private window or `curl -sI https://qr.zeyuyaoy.com/r/<slug>`: expect `307` with `Location:` set to your destination. Pause the code and confirm the page changes to "Link paused".
 - [ ] **PWA files.** `/manifest.webmanifest` returns JSON; `/icons/icon-192.png`, `/icons/icon-512.png`, `/icons/maskable-512.png` return 200; `/sw.js` returns 200 with `Cache-Control: no-cache, no-store, must-revalidate`. Chrome DevTools -> Application -> Manifest shows installable.
 - [ ] **Security headers.** `curl -sI https://qr.zeyuyaoy.com/login` shows `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options: DENY`, and no `X-Powered-By`.
+- [ ] **Vercel telemetry.** Visit the deployed app and navigate between pages; confirm the `/_vercel/insights/` and `/_vercel/speed-insights/` scripts and collection requests succeed in browser DevTools, then check the Web Analytics and Speed Insights dashboards for incoming data.
 - [ ] **Backup run.** Settings -> Backup -> **Back up now** succeeds ("Backup created"); a `snapshots/qr-*.qrbackup.json` file appears in the GitHub repo.
 - [ ] **Status page.** Settings shows "Backups are up to date" and the Redis storage figures. The red "not protected" banner is gone.
 - [ ] **Redis TLS warning.** Settings -> Data still shows the "traffic is not encrypted" warning: expected on the free tier.
