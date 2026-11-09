@@ -1,5 +1,5 @@
 import {type APIRequestContext, expect, type Page, test} from "@playwright/test";
-import {chooseDynamic, CSRF, fillUrl, gotoCreate, saveCode} from "./helpers/app";
+import {chooseDynamic, CSRF, fillUrl, gotoCreate, qrPreview, saveCode} from "./helpers/app";
 
 async function createDynamic(page: Page, dest: string, extra?: (p: Page) => Promise<void>) {
     await gotoCreate(page);
@@ -15,7 +15,7 @@ const hit = (request: APIRequestContext, slug: string) => request.get(`/r/${slug
 
 test("dynamic QR encodes the short link and redirects without a login", async ({page, playwright, baseURL}) => {
     const {slug} = await createDynamic(page, "https://example.com/a?x=1#frag");
-    await expect(page.getByTestId("qr-preview")).toHaveAttribute("data-qr-data", `${baseURL}/r/${slug}`);
+    await expect(qrPreview(page)).toHaveAttribute("data-qr-data", `${baseURL}/r/${slug}`);
     const anon = await playwright.request.newContext({baseURL});
     const res = await hit(anon, slug);
     expect(res.status()).toBe(307);

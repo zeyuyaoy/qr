@@ -2,15 +2,17 @@ import {expect, type Page} from "@playwright/test";
 
 export const CSRF = {"x-qr-csrf": "1", "content-type": "application/json"};
 
+// A hidden preview can still be in the DOM while the active page is rendering.
+export const qrPreview = (page: Page) => page.getByTestId("qr-preview").filter({visible: true});
+
 export async function gotoCreate(page: Page) {
     await page.goto("/");
-    await expect(page.getByTestId("qr-preview")).toBeVisible();
-    await expect(page.locator("svg", {hasText: ""}).first()).toBeAttached();
+    await expect(qrPreview(page)).toBeVisible();
 }
 
 export async function fillUrl(page: Page, url: string) {
     await page.locator('input[name="url"]').fill(url);
-    await expect(page.getByTestId("qr-preview")).toHaveAttribute("data-qr-data", /./);
+    await expect(qrPreview(page)).toHaveAttribute("data-qr-data", /./);
 }
 
 export async function chooseDynamic(page: Page) {
@@ -27,5 +29,5 @@ export async function saveCode(page: Page): Promise<{ id: string }> {
 }
 
 export async function waitPreviewSvg(page: Page) {
-    await expect(page.getByTestId("qr-preview").locator("svg")).toBeAttached({timeout: 15_000});
+    await expect(qrPreview(page).locator("svg")).toBeAttached({timeout: 15_000});
 }

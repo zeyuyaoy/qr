@@ -1,7 +1,7 @@
 import {readFileSync} from "node:fs";
 import {expect, test} from "@playwright/test";
 import {decodeQr} from "./helpers/decode";
-import {fillUrl, gotoCreate, waitPreviewSvg} from "./helpers/app";
+import {fillUrl, gotoCreate, qrPreview, waitPreviewSvg} from "./helpers/app";
 
 const URL_WITH_PARTS = "https://example.com/menu?table=4&lang=en#top";
 
@@ -13,7 +13,7 @@ test("generates a static QR live, in the browser, preserving query and fragment"
     expect(requests.filter((p) => p === "/api/status")).toHaveLength(1);
     const before = requests.length;
     await fillUrl(page, URL_WITH_PARTS);
-    await expect(page.getByTestId("qr-preview")).toHaveAttribute("data-qr-data", URL_WITH_PARTS);
+    await expect(qrPreview(page)).toHaveAttribute("data-qr-data", URL_WITH_PARTS);
     await waitPreviewSvg(page);
     expect(requests.slice(before).filter((p) => p.startsWith("/api/"))).toEqual([]);
 });
@@ -59,7 +59,7 @@ test("customised design (preset, gradient, rounded shapes) still scans", async (
     await expect(page.getByText("No readability problems detected.")).toBeVisible();
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", {name: "Download"}).click()]);
     expect(await decodeQr(readFileSync((await download.path())!))).toBe(URL_WITH_PARTS);
-    const preview = page.getByTestId("qr-preview");
+    const preview = qrPreview(page);
     await expect(preview.locator("linearGradient stop")).toHaveCount(2);
     await page.getByRole("button", {name: "Forest"}).click();
     await expect(preview.locator('rect[fill="#14532d"]').first()).toBeAttached();
@@ -79,7 +79,7 @@ test("Wi-Fi payload follows the standard format", async ({page}) => {
     await page.getByLabel("Content type").selectOption("wifi");
     await page.locator('input[name="ssid"]').fill("Home;Net");
     await page.locator('input[name="password"]').fill("correct-horse-battery");
-    await expect(page.getByTestId("qr-preview")).toHaveAttribute("data-qr-data", "WIFI:T:WPA;S:Home\\;Net;P:correct-horse-battery;;");
+    await expect(qrPreview(page)).toHaveAttribute("data-qr-data", "WIFI:T:WPA;S:Home\\;Net;P:correct-horse-battery;;");
 });
 
 test("invalid URL shows an accessible error and blocks save", async ({page}) => {
@@ -115,7 +115,7 @@ for (const type of ["text", "email", "phone", "sms", "wifi", "vcard", "event", "
         if (!example.ok) throw new Error(`Invalid ${type} fixture`);
         await page.goto(`/?content=${encodeURIComponent(example.payload)}`);
         await expect(page.getByText("Content loaded from scan")).toBeVisible();
-        const data = await page.getByTestId("qr-preview").getAttribute("data-qr-data");
+        const data = await qrPreview(page).getAttribute("data-qr-data");
         expect(data).toBeTruthy();
         const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", {name: "Download"}).click()]);
         expect(await decodeQr(readFileSync((await download.path())!))).toBe(data);
@@ -136,12 +136,30 @@ test("uploaded logo stays readable in the exported image", async ({page}) => {
     expect(await decodeQr(readFileSync((await download.path())!))).toBe("https://example.com/logo");
 });
 
+test("a built-in platform logo renders and exports a scannable QR", async ({page}) => {
+    await gotoCreate(page);
+    await fillUrl(page, "https://github.com/octocat");
+    await page.locator("summary", {hasText: "Customize"}).click();
+    await page.locator("summary", {hasText: "Logo"}).click();
+    await page.getByRole("group", {name: "Platform logos"}).getByRole("button", {name: "GitHub"}).click();
+    await expect(page.getByRole("img", {name: "Current logo"})).toBeVisible();
+    await expect(qrPreview(page).locator("image")).toBeAttached();
+    const logo = qrPreview(page).locator("image");
+    const original = await logo.evaluate((image) => image.outerHTML);
+    await page.getByRole("button", {name: "Ocean"}).click();
+    await expect.poll(() => logo.evaluate((image) => image.outerHTML)).not.toBe(original);
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", {name: "Download"}).click()]);
+    expect(await decodeQr(readFileSync((await download.path())!))).toBe("https://github.com/octocat");
+    await page.getByRole("button", {name: "Remove", exact: true}).click();
+    await expect(qrPreview(page).locator("image")).toHaveCount(0);
+});
+
 test("exports Unicode text without losing or changing characters", async ({page}) => {
     const text = "Café · 你好 · 👋";
     await gotoCreate(page);
     await page.getByLabel("Content type").selectOption("text");
     await page.locator('textarea[name="text"]').fill(text);
-    await expect(page.getByTestId("qr-preview")).toHaveAttribute("data-qr-data", text);
+    await expect(qrPreview(page)).toHaveAttribute("data-qr-data", text);
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", {name: "Download"}).click()]);
     expect(await decodeQr(readFileSync((await download.path())!))).toBe(text);
 });

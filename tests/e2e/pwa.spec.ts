@@ -1,7 +1,7 @@
 import {readFileSync} from "node:fs";
 import {expect, test} from "@playwright/test";
 import {decodeQr} from "./helpers/decode";
-import {CSRF, fillUrl, gotoCreate, saveCode} from "./helpers/app";
+import {CSRF, fillUrl, gotoCreate, qrPreview, saveCode} from "./helpers/app";
 
 test("manifest and icons are valid and installable", async ({request}) => {
     const m = await (await request.get("/manifest.webmanifest")).json();
@@ -36,7 +36,7 @@ test("works offline: shell loads, generation and export succeed, private API is 
 
     await context.setOffline(true);
     await page.reload();
-    await expect(page.getByTestId("qr-preview")).toBeVisible();
+    await expect(qrPreview(page)).toBeVisible();
     await expect(page.getByText(/You're offline/)).toBeVisible();
     await fillUrl(page, "https://example.com/offline-test");
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", {name: "Download"}).click()]);

@@ -25,7 +25,7 @@ export const QrPreview = memo(function QrPreview({data, style, size = 256, class
         const t = setTimeout(async () => {
             try {
                 const QR = await loadQrLib();
-                const logo = await compositeLogo(logoUrl, style.logo);
+                const logo = await compositeLogo(logoUrl, style);
                 if (cancelled || !host.current) return;
                 const opts = {...toStylingOptions(data || " ", style, {size, logoUrl: logo}), type: "svg" as const};
                 // Updating an existing renderer retains omitted options such as gradients and logos.

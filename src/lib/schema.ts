@@ -68,6 +68,7 @@ export const styleSchema = z.object({
     logo: z
         .object({
             assetId: z.string().regex(/^[a-f0-9]{16,64}$/).nullable().default(null),
+            matchForeground: z.boolean().optional(),
             size: z.number().min(0.05).max(0.4).default(0.2),
             padding: z.number().min(0).max(40).default(6),
             background: hex.nullable().default("#ffffff"),

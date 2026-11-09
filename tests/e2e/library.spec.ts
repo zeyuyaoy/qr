@@ -12,6 +12,32 @@ const mk = async (request: APIRequestContext, name: string, url: string, extra: 
     return (await res.json()).data as { id: string; rev: number };
 };
 
+test("library displays empty folders and filters codes by folder", async ({page, request}) => {
+    const createFolder = async (name: string) => {
+        const res = await request.post("/api/folders", {headers: CSRF, data: {name}});
+        expect(res.status(), await res.text()).toBe(201);
+        return (await res.json()).data.id;
+    };
+    const folder = await createFolder("Menus");
+    await createFolder("Empty folder");
+
+    await page.goto("/library");
+    const folders = page.getByRole("region", {name: "Folders"});
+    await expect(folders.getByRole("button", {name: "Empty folder"})).toBeVisible();
+
+    await mk(request, "Menu QR", "https://example.com/menu", {folder});
+    await mk(request, "Unfiled QR", "https://example.com/unfiled");
+    await page.reload();
+    await expect(page.getByRole("link", {name: "Unfiled QR"})).toBeVisible();
+    const menus = folders.getByRole("button", {name: "Menus"});
+    await menus.click();
+    await expect(menus).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("link", {name: "Menu QR"})).toBeVisible();
+    await expect(page.getByRole("link", {name: "Unfiled QR"})).toHaveCount(0);
+    await menus.click();
+    await expect(page.getByRole("link", {name: "Unfiled QR"})).toBeVisible();
+});
+
 test("library: create, search, edit, duplicate, favorite, archive, restore, trash, purge", async ({page, request}) => {
     const tag = `t${Date.now() % 100000}`;
     const a = await mk(request, `Alpha ${tag}`, "https://example.com/alpha", {tags: [tag]});

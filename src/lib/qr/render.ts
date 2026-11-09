@@ -10,10 +10,12 @@ export const loadQrLib = () => (lib ??= import("qr-code-styling").then((m) => m.
 
 const compMemo = new Map<string, Promise<string>>();
 
-export function compositeLogo(logoUrl: string | null | undefined, logo: QrStyle["logo"]): Promise<string | null> {
+export function compositeLogo(logoUrl: string | null | undefined, style: QrStyle): Promise<string | null> {
     if (!logoUrl) return Promise.resolve(null);
-    if (!logo.background) return Promise.resolve(logoUrl);
-    const key = `${logoUrl.length}:${logoUrl.slice(-32)}:${logo.background}:${logo.padding}`;
+    const {logo} = style;
+    const tint = logo.matchForeground ? (style.gradient.enabled ? style.gradient.from : style.fg) : null;
+    if (!logo.background && !tint) return Promise.resolve(logoUrl);
+    const key = `${logoUrl.length}:${logoUrl.slice(-32)}:${logo.background}:${logo.padding}:${tint}`;
     let p = compMemo.get(key);
     if (!p) {
         p = new Promise<string>((res) => {
@@ -24,17 +26,24 @@ export function compositeLogo(logoUrl: string | null | undefined, logo: QrStyle[
                 c.width = c.height = N;
                 const ctx = c.getContext("2d");
                 if (!ctx) return res(logoUrl);
-                ctx.fillStyle = logo.background!;
-                const r = N * 0.18;
-                ctx.beginPath();
-                ctx.roundRect(0, 0, N, N, r);
-                ctx.fill();
-                const pad = Math.min(0.3, logo.padding / 100) * N + N * 0.04;
+                const pad = logo.background ? Math.min(0.3, logo.padding / 100) * N + N * 0.04 : 0;
                 const box = N - pad * 2;
                 const k = Math.min(box / img.naturalWidth, box / img.naturalHeight);
                 const w = img.naturalWidth * k;
                 const h = img.naturalHeight * k;
                 ctx.drawImage(img, (N - w) / 2, (N - h) / 2, w, h);
+                if (tint) {
+                    ctx.globalCompositeOperation = "source-in";
+                    ctx.fillStyle = tint;
+                    ctx.fillRect(0, 0, N, N);
+                }
+                if (logo.background) {
+                    ctx.globalCompositeOperation = "destination-over";
+                    ctx.fillStyle = logo.background;
+                    ctx.beginPath();
+                    ctx.roundRect(0, 0, N, N, N * 0.18);
+                    ctx.fill();
+                }
                 res(c.toDataURL("image/png"));
             };
             img.onerror = () => res(logoUrl);
@@ -52,7 +61,7 @@ function forFormat(style: QrStyle, format: ExportFormat): QrStyle {
 export async function renderBlob(o: RenderInput & { format: ExportFormat; size?: number }): Promise<Blob> {
     const QR = await loadQrLib();
     const style = forFormat(o.style, o.format);
-    const logoUrl = await compositeLogo(o.logoUrl, style.logo);
+    const logoUrl = await compositeLogo(o.logoUrl, style);
     const opts = toStylingOptions(o.data, style, {size: o.size ?? style.size, logoUrl});
     const qr = new QR({...opts, type: o.format === "svg" ? "svg" : "canvas"});
     const raw = await qr.getRawData(o.format);

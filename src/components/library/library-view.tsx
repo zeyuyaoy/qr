@@ -425,7 +425,7 @@ export function LibraryView() {
                 <ErrorNotice title="Could not load your library" message={lib.error} onRetry={() => void refresh()}/>
             ) : !hasAny && lib.refreshing ? (
                 <LoadingGrid/>
-            ) : !hasAny ? (
+            ) : !hasAny && folders.length === 0 ? (
                 <EmptyState icon={FolderOpen} title="No codes yet">
                     <p>Create your first QR code and it will show up here, ready to search, organise and download.</p>
                     <Link href="/" className={cn(buttonVariants(), TAP, "mt-4")}><Plus/> Create a QR code</Link>
@@ -449,6 +449,29 @@ export function LibraryView() {
                         }}
                         shown={filtered.length}
                     />
+
+                    {tab === "active" && folders.length > 0 ? (
+                        <section aria-labelledby="library-folders" className="mb-4 grid gap-2">
+                            <h2 id="library-folders" className="text-sm font-medium">Folders</h2>
+                            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                                {folders.map((folder) => (
+                                    <li key={folder.id} className="min-w-0">
+                                        <Button variant={filters.folder === folder.id ? "secondary" : "outline"}
+                                                className={cn(TAP, "w-full justify-start")}
+                                                aria-pressed={filters.folder === folder.id}
+                                                title={folder.name}
+                                                onClick={() => setFilters({
+                                                    ...filters,
+                                                    folder: filters.folder === folder.id ? "" : folder.id
+                                                })}>
+                                            <Folder aria-hidden style={{color: folder.color ?? undefined}}/>
+                                            <span className="truncate">{folder.name}</span>
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
+                    ) : null}
 
                     {tab === "pending" && counts.pending > 0 ? (
                         <InfoNotice className="mb-4">

@@ -1,4 +1,5 @@
 import {expect, test} from "@playwright/test";
+import {qrPreview} from "./helpers/app";
 
 test("mobile layout: bottom navigation, no sidebar, no horizontal scroll", async ({page}) => {
     await page.goto("/");
@@ -61,7 +62,7 @@ test("More menu supports keyboard navigation and Escape", async ({page}) => {
 test("paste, preview and download without scrolling past mobile navigation", async ({page}) => {
     await page.goto("/");
     await page.getByRole("textbox", {name: "Website address"}).fill("https://example.com/mobile-menu");
-    await expect(page.getByTestId("qr-preview")).toHaveAttribute("data-qr-data", "https://example.com/mobile-menu");
+    await expect(qrPreview(page)).toHaveAttribute("data-qr-data", "https://example.com/mobile-menu");
     const nav = page.getByRole("navigation", {name: "Primary"});
     const navTop = (await nav.boundingBox())!.y;
     for (const name of ["Download", "Save to library", "Share"]) {

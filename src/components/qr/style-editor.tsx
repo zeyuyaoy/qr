@@ -12,6 +12,7 @@ import {checkReadability, type ReadabilityIssue} from "@/lib/qr/readability";
 import {PRESETS} from "@/lib/qr/style";
 import {DOT_TYPES, FINDER_INNER, FINDER_OUTER, type QrStyle, styleSchema} from "@/lib/schema";
 import {cn} from "@/lib/utils";
+import {PLATFORM_LOGOS} from "./platform-logos";
 
 const label = (s: string) => s.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
 const ECC_HINT = {
@@ -67,13 +68,13 @@ export function StyleEditor({value, onChange, payload = "https://example.com", d
     });
     const issues = useMemo(() => checkReadability(value, payload, Boolean(value.logo.assetId)), [value, payload]);
 
-    const pickLogo = async (file: File | undefined) => {
+    const pickLogo = async (file: File | undefined, matchForeground?: true) => {
         if (!file) return;
         setBusy(true);
         try {
             const {dataUrl, assetId} = await processLogoFile(file);
             if (isOnline()) await api.assets.put(dataUrl).catch(() => toast.message("Logo kept on this device; it will upload when you save."));
-            onChange({...value, preset: null, logo: {...value.logo, assetId}});
+            onChange({...value, preset: null, logo: {...value.logo, assetId, matchForeground}});
         } catch (e) {
             toast.error(e instanceof Error ? e.message : "Could not use that image");
         } finally {
@@ -189,23 +190,39 @@ export function StyleEditor({value, onChange, payload = "https://example.com", d
             </Section>
 
             <Section title="Logo">
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Platform logos">
+                    {PLATFORM_LOGOS.map(([name, path]) => (
+                        <Button key={name} type="button" variant="outline" size="sm" className="tap"
+                                disabled={busy || disabled} onClick={() => void pickLogo(new File([
+                            `<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="-1 -1 26 26"><path d="${path}" stroke="black" stroke-width="0.5" stroke-linejoin="round"/></svg>`
+                        ], `${name}.svg`, {type: "image/svg+xml"}), true)}>
+                            <svg aria-hidden="true" viewBox="-1 -1 26 26" className="size-5 rounded bg-zinc-800 p-0.5" fill="white"><path d={path} stroke="white" strokeWidth={0.5} strokeLinejoin="round"/></svg>
+                            {name}
+                        </Button>
+                    ))}
+                </div>
                 <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                       className="sr-only" aria-label="Logo image file"
+                       className="sr-only" aria-label="Logo image file" disabled={busy || disabled}
                        onChange={(e) => void pickLogo(e.target.files?.[0])}/>
                 {value.logo.assetId ? (
                     <div className="flex items-center gap-3">
                         <span
-                            className="grid size-14 place-items-center overflow-hidden rounded-lg border bg-muted">{logoUrl ?
-                            <img src={logoUrl} alt="Current logo" className="max-h-full max-w-full"/> :
+                            className={cn("grid size-14 place-items-center overflow-hidden rounded-lg border",
+                                logoUrl && value.logo.matchForeground ? "bg-zinc-800" : "bg-muted")}>{logoUrl ?
+                            (value.logo.matchForeground ?
+                                <span role="img" aria-label="Current logo" className="size-full bg-white" style={{
+                                    mask: `url("${logoUrl}") center / contain no-repeat`
+                                }}/> :
+                                <img src={logoUrl} alt="Current logo" className="max-h-full max-w-full"/>) :
                             <ImagePlus className="size-5 text-muted-foreground"/>}</span>
                         <div className="flex flex-wrap gap-2">
                             <Button type="button" variant="outline" size="sm" disabled={busy || disabled}
                                     onClick={() => fileRef.current?.click()}>Replace</Button>
-                            <Button type="button" variant="ghost" size="sm" disabled={disabled}
+                            <Button type="button" variant="ghost" size="sm" disabled={busy || disabled}
                                     onClick={() => onChange({
                                         ...value,
                                         preset: null,
-                                        logo: {...value.logo, assetId: null}
+                                        logo: {...value.logo, assetId: null, matchForeground: undefined}
                                     })}><Trash2/> Remove</Button>
                         </div>
                     </div>
