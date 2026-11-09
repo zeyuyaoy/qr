@@ -1,5 +1,4 @@
 "use client";
-import type QRCodeStylingType from "qr-code-styling";
 import {memo, useEffect, useRef, useState} from "react";
 import {useLogoUrl} from "@/lib/client/logo";
 import {compositeLogo, loadQrLib} from "@/lib/qr/render";
@@ -15,7 +14,6 @@ export const QrPreview = memo(function QrPreview({data, style, size = 256, class
     label?: string
 }) {
     const host = useRef<HTMLDivElement>(null);
-    const qr = useRef<QRCodeStylingType | null>(null);
     const last = useRef<string>("");
     const logoUrl = useLogoUrl(style.logo.assetId);
     const [error, setError] = useState<string | null>(null);
@@ -30,19 +28,16 @@ export const QrPreview = memo(function QrPreview({data, style, size = 256, class
                 const logo = await compositeLogo(logoUrl, style.logo);
                 if (cancelled || !host.current) return;
                 const opts = {...toStylingOptions(data || " ", style, {size, logoUrl: logo}), type: "svg" as const};
-                if (!qr.current) {
-                    qr.current = new QR(opts);
-                    host.current.replaceChildren();
-                    qr.current.append(host.current);
-                } else {
-                    qr.current.update(opts);
-                }
+                // Updating an existing renderer retains omitted options such as gradients and logos.
+                const qr = new QR(opts);
+                host.current.replaceChildren();
+                qr.append(host.current);
                 last.current = key;
                 setError(null);
             } catch (e) {
                 if (!cancelled) setError(e instanceof Error ? e.message : "Could not render");
             }
-        }, qr.current ? 60 : 0);
+        }, last.current ? 60 : 0);
         return () => {
             cancelled = true;
             clearTimeout(t);

@@ -20,10 +20,7 @@ export const metadata: Metadata = {
     robots: {index: false, follow: false},
 };
 export const viewport: Viewport = {
-    themeColor: [{media: "(prefers-color-scheme: light)", color: "#d8dfcf"}, {
-        media: "(prefers-color-scheme: dark)",
-        color: "#141a16"
-    }],
+    themeColor: "#d8dfcf",
     width: "device-width",
     initialScale: 1,
     viewportFit: "cover",

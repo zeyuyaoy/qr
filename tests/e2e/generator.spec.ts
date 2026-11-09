@@ -59,6 +59,11 @@ test("customised design (preset, gradient, rounded shapes) still scans", async (
     await expect(page.getByText("No readability problems detected.")).toBeVisible();
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", {name: "Download"}).click()]);
     expect(await decodeQr(readFileSync((await download.path())!))).toBe(URL_WITH_PARTS);
+    const preview = page.getByTestId("qr-preview");
+    await expect(preview.locator("linearGradient stop")).toHaveCount(2);
+    await page.getByRole("button", {name: "Forest"}).click();
+    await expect(preview.locator('rect[fill="#14532d"]').first()).toBeAttached();
+    await expect(preview.locator("linearGradient")).toHaveCount(0);
 });
 
 test("low contrast design is flagged", async ({page}) => {

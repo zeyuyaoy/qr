@@ -1,5 +1,5 @@
 "use client";
-import {ThemeProvider} from "next-themes";
+import {ThemeProvider, useTheme} from "next-themes";
 import {useEffect} from "react";
 import {Toaster} from "sonner";
 
@@ -15,8 +15,21 @@ export function Providers({children}: { children: React.ReactNode }) {
     return (
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             {children}
-            <Toaster position="top-center" richColors closeButton/>
+            <ThemeChrome/>
             <ServiceWorker/>
         </ThemeProvider>
     );
+}
+
+function ThemeChrome() {
+    const {resolvedTheme} = useTheme();
+
+    useEffect(() => {
+        if (resolvedTheme) {
+            document.querySelector('meta[name="theme-color"]')
+                ?.setAttribute("content", resolvedTheme === "dark" ? "#141a16" : "#d8dfcf");
+        }
+    }, [resolvedTheme]);
+
+    return <Toaster theme={resolvedTheme === "dark" ? "dark" : "light"} position="top-center" richColors closeButton/>;
 }
