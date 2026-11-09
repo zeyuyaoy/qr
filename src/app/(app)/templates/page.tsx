@@ -1,5 +1,5 @@
-import { TemplatesView } from "@/components/templates/templates-view";
+import {TemplatesView} from "@/components/templates/templates-view";
 
 export default function TemplatesPage() {
-  return <TemplatesView />;
+    return <TemplatesView/>;
 }
