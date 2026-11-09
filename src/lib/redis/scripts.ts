@@ -1,13 +1,3 @@
-/**
- * Lua scripts. Redis runs each script atomically, which is what gives us:
- *  - slug uniqueness (check + claim in one step),
- *  - consistent secondary indexes (record + slug + folder/tag sets move together),
- *  - race-free scan limits (check + increment in one step).
- * Key names that cannot be declared up-front are built from ARGV[1] (our namespace prefix).
- * That is fine on a single-node Redis (Redis Cloud Free); a clustered deployment would need hash tags.
- */
-
-/** KEYS: code, index:codes, index:tags — ARGV: prefix, mode, id, json, expectedRev, slug, score, folder, tagsJson */
 export const PUT = `
 local prefix = ARGV[1]
 local mode, id, json, expRev, slug, score, folder = ARGV[2], ARGV[3], ARGV[4], ARGV[5], ARGV[6], ARGV[7], ARGV[8]
@@ -55,12 +45,12 @@ redis.call('SET', KEYS[1], json)
 return {'OK'}
 `;
 
-/** KEYS: code, index:codes, index:tags, count — ARGV: prefix, id. Removes the record and every index entry. */
 export const PURGE = `
 local prefix, id = ARGV[1], ARGV[2]
 local cur = redis.call('GET', KEYS[1])
 if not cur then return 0 end
 local old = cjson.decode(cur)
+if ARGV[3] ~= "1" and old.status ~= "trashed" then return -1 end
 if type(old.slug) == 'string' and redis.call('GET', prefix .. 'slug:' .. old.slug) == id then
   redis.call('DEL', prefix .. 'slug:' .. old.slug)
 end
@@ -77,7 +67,6 @@ redis.call('DEL', KEYS[1], KEYS[4])
 return 1
 `;
 
-/** KEYS: slug key, ... — ARGV: prefix. One round trip for the public hot path: slug → record + counter. */
 export const RESOLVE = `
 local id = redis.call('GET', KEYS[1])
 if not id then return false end
@@ -88,12 +77,6 @@ local st = redis.call('GET', ARGV[1] .. 'settings')
 return {rec, n or '0', st or ''}
 `;
 
-/**
- * Accept one scan atomically.
- * KEYS: count, stats(code,day), stats(all,day), recent
- * ARGV: limit(0=none), track(0|1), ttlSeconds, device, country, recentEntry, recentMax, codeId
- * Returns the new count, or -1 when the scan limit is exhausted (nothing is incremented then).
- */
 export const ACCEPT = `
 if ARGV[9] ~= '' then
   local raw = redis.call('GET', KEYS[5])
@@ -125,7 +108,6 @@ end
 return current
 `;
 
-/** KEYS: rate key — ARGV: windowSeconds. Returns the count in the current window. */
 export const HIT = `
 local n = redis.call('INCR', KEYS[1])
 if n == 1 then redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1])) end
